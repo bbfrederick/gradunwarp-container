@@ -12,7 +12,7 @@ IMAGE=gradunwarp-container
 git pull
 
 # bump version
-version=`cat VERSION | sed 's/+/ /g' | sed 's/v//g' | awk '{print $1}'`
+version=`git describe --tags`
 echo "version: $version"
 
 # run build
