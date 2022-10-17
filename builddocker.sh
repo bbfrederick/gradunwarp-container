@@ -6,7 +6,7 @@ set -ex
 # docker hub username
 USERNAME=fredericklab
 # image name
-IMAGE=gradunwarp-container
+IMAGE=ukbb-pipeline
 
 # ensure we're up to date
 git pull

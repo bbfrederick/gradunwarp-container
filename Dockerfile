@@ -1,53 +1,44 @@
-# Use Ubuntu 20.04 LTS
-FROM ubuntu:20.04
+FROM condaforge/miniforge3
+ENV PATH="/opt/conda/bin:${PATH}"
 
-# Prepare environment
-RUN df -h
-ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=America/New_York
-RUN apt-get update && \
-    apt-get install -y tzdata && \
-    apt-get install -y --no-install-recommends \
-                    curl \
-                    bzip2 \
-                    ca-certificates \
-                    xvfb \
-                    build-essential \
-                    autoconf \
-                    libtool \
-                    gnupg \
-                    pkg-config \
-                    lsb-release \
-                    git
+# store the FSL public conda channel
+ENV FSL_CONDA_CHANNEL="https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public"
 
+# entrypoint activates conda environment and fsl when you `docker run <command>`
+COPY /entrypoint /entrypoint
 
-RUN apt-get install -y python3-numpy
-RUN apt-get install -y python3-scipy
-RUN apt-get install -y python3-pip
-RUN pip install nibabel
+# make entrypoint executable
+RUN chmod +x /entrypoint
 
-RUN curl -sSLO https://github.com/Washington-University/gradunwarp/archive/refs/tags/v1.2.0.tar.gz
-RUN tar -xvzf v1.2.0.tar.gz
-RUN rm v1.2.0.tar.gz
+# install tini into base conda environment
+RUN /opt/conda/bin/conda install -n base -c conda-forge tini
 
-RUN cd gradunwarp-1.2.0; python3 setup.py install
+# as a demonstration, install ONLY FSL's bet (brain extraction) tool. This is an example of a minimal, yet usable container without the rest of FSL being installed
+# to see all packages available use a browser to navigate to: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/
+# note the channel priority. The FSL conda channel must be first, then condaforge
+RUN /opt/conda/bin/conda install -n base -c $FSL_CONDA_CHANNEL fsl -c conda-forge
 
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# set FSLDIR so FSL tools can use it, in this minimal case, the FSLDIR will be the root conda directory
+ENV FSLDIR="/opt/conda"
 
-ENV IS_DOCKER_8395080871=1
+ENTRYPOINT [ "/opt/conda/bin/tini", "--", "/entrypoint" ]
 
-RUN ldconfig
-WORKDIR /tmp/
-ENTRYPOINT ["/usr/local/bin/gradient_unwarp.py"]
+# install gradunwarp
+#RUN curl -sSLO https://github.com/Washington-University/gradunwarp/archive/refs/tags/v1.2.0.tar.gz
+#RUN tar -xvzf v1.2.0.tar.gz
+#RUN rm v1.2.0.tar.gz
+#RUN cd gradunwarp-1.2.0; python3 setup.py install
+
+# install ukbb software
 
 ARG VERSION
 ARG BUILD_DATE
 ARG VCS_REF
 
 LABEL org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.name="gradunwarp-container" \
-      org.label-schema.description="gradunwarp container" \
+      org.label-schema.name="ukbb-pipeline" \
+      org.label-schema.description="ukbb image pipeline container" \
       org.label-schema.url="http://nirs-fmri.net" \
       org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/bbfrederick/gradunwarp-container" \
+      org.label-schema.vcs-url="https://github.com/bbfrederick/ukbb-pipeline" \
       org.label-schema.version=$VERSION
