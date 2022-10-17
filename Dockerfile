@@ -1,27 +1,32 @@
-FROM condaforge/miniforge3
-ENV PATH="/opt/conda/bin:${PATH}"
+# Use CentOS 7
+FROM centos:7.5.1804
 
-# store the FSL public conda channel
-ENV FSL_CONDA_CHANNEL="https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public"
+# based on https://github.com/pnlbwh/fsl-containers
 
-# entrypoint activates conda environment and fsl when you `docker run <command>`
-COPY /entrypoint /entrypoint
+# set up user and working directory
+ARG USER=fsluser
+ENV USER="$USER"
+ARG CWD=/root
+WORKDIR $CWD
+ENV PWD="$CWD"
 
-# make entrypoint executable
-RUN chmod +x /entrypoint
+# libraries and commands for FSL
+RUN yum -y update \
+    && yum -y install epel-release wget file bzip2 openblas-devel which \
+    libmng libpng12 libSM gtk2 mesa-dri-drivers
 
-# install tini into base conda environment
-RUN /opt/conda/bin/conda install -n base -c conda-forge tini
+# install FSL, -V 6.0.5.1
+RUN wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py -O fslinstaller.py \
+    && python fslinstaller.py -V 6.0.5.1 -d `pwd`/fsl -p
 
-# as a demonstration, install ONLY FSL's bet (brain extraction) tool. This is an example of a minimal, yet usable container without the rest of FSL being installed
-# to see all packages available use a browser to navigate to: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/
-# note the channel priority. The FSL conda channel must be first, then condaforge
-RUN /opt/conda/bin/conda install -n base -c $FSL_CONDA_CHANNEL fslpy -c conda-forge
-
-# set FSLDIR so FSL tools can use it, in this minimal case, the FSLDIR will be the root conda directory
-ENV FSLDIR="/opt/conda"
-
-ENTRYPOINT [ "/opt/conda/bin/tini", "--", "/entrypoint" ]
+# setup FSL environment
+ENV FSLDIR="$PWD/fsl"
+ENV PATH="$FSLDIR/bin/:$PATH" \
+	FSLMULTIFILEQUIT=TRUE \
+	FSLGECUDAQ=cuda.q \
+	FSLTCLSH="$FSLDIR/bin/fsltclsh" \
+	FSLWISH="$FSLDIR/bin/fslwish" \
+	FSLOUTPUTTYPE=NIFTI_GZ
 
 # install gradunwarp
 #RUN curl -sSLO https://github.com/Washington-University/gradunwarp/archive/refs/tags/v1.2.0.tar.gz
