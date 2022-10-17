@@ -16,7 +16,7 @@ RUN /opt/conda/bin/conda install -n base -c conda-forge tini
 # as a demonstration, install ONLY FSL's bet (brain extraction) tool. This is an example of a minimal, yet usable container without the rest of FSL being installed
 # to see all packages available use a browser to navigate to: https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/
 # note the channel priority. The FSL conda channel must be first, then condaforge
-RUN /opt/conda/bin/conda install -n base -c $FSL_CONDA_CHANNEL fsl-base -c conda-forge
+RUN /opt/conda/bin/conda install -n base -c $FSL_CONDA_CHANNEL fslpy -c conda-forge
 
 # set FSLDIR so FSL tools can use it, in this minimal case, the FSLDIR will be the root conda directory
 ENV FSLDIR="/opt/conda"
